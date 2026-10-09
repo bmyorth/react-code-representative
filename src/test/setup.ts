@@ -13,6 +13,14 @@ import { server } from './msw-server';
  */
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });
+
+  // jsdom no implementa `<dialog>.showModal()` ni `close()`: se simulan con el atributo `open`.
+  HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+    this.removeAttribute('open');
+  };
 });
 
 afterEach(() => {

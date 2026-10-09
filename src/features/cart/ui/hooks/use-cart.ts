@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useCartStore } from '../../cart.container';
@@ -24,3 +25,29 @@ export const useCartItem = (productId: string) =>
 /** Solo los ids: la lista se re-renderiza al añadir o quitar líneas, no al cambiar cantidades. */
 export const useCartItemIds = () =>
   useCartStore(useShallow((state) => state.cart.items.map((item) => item.productId)));
+
+/** Línea del carrito en la forma que necesita el pago: producto, cantidad y precio unitario. */
+export interface CartLineSnapshot {
+  readonly productId: string;
+  readonly name: string;
+  readonly quantity: number;
+  readonly unitPriceInCents: number;
+}
+
+/**
+ * Líneas del carrito para el pago. Se suscribe al array (referencia estable entre cambios) y
+ * proyecta con `useMemo`: devolver objetos nuevos desde el selector provocaría renders de más.
+ */
+export function useCartLines(): readonly CartLineSnapshot[] {
+  const items = useCartStore((state) => state.cart.items);
+  return useMemo(
+    () =>
+      items.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        quantity: item.quantity,
+        unitPriceInCents: item.priceInCents,
+      })),
+    [items],
+  );
+}

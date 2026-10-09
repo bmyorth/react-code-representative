@@ -1,0 +1,45 @@
+.receipt {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 36rem;
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.title {
+  font-size: 1.125rem;
+  overflow-wrap: anywhere;
+}
+
+.paid {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.pending {
+  color: var(--color-text-muted);
+}
+
+.lines {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.line,
+.total {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.total {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
