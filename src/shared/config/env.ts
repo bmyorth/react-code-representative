@@ -15,8 +15,10 @@ const parsed = envSchema.parse(import.meta.env);
 /** Configuración de entorno ya validada y con nombres de dominio. */
 export const env = {
   apiBaseUrl: parsed.VITE_API_BASE_URL,
-  /** Si no se indica, la API simulada se activa solo en desarrollo. */
-  enableMocks:
-    parsed.VITE_ENABLE_MOCKS === undefined ? parsed.DEV : parsed.VITE_ENABLE_MOCKS === 'true',
+  /**
+   * MSW intercepta el catálogo en el navegador. Está desactivado por defecto: la API real
+   * (backend local) es la que emite las cookies HttpOnly, algo que un service worker no puede hacer.
+   */
+  enableMocks: parsed.VITE_ENABLE_MOCKS === 'true',
   isDev: parsed.DEV,
 } as const;

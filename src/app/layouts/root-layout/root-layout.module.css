@@ -52,6 +52,12 @@
   padding: 0 var(--space-4);
 }
 
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
 .brand {
   font-size: 1.25rem;
   font-weight: 800;
