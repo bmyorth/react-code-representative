@@ -1,15 +1,20 @@
 version: 2
 updates:
-  # Dependencias de npm agrupadas en un único PR semanal.
+  # Dependencias de npm: un PR semanal con las versiones menores y parches.
+  # Las versiones mayores llegan en PRs separados, porque suelen romper
+  # compatibilidad y hay que revisarlas una a una.
   - package-ecosystem: npm
     directory: /
+    target-branch: develop
     schedule:
       interval: weekly
     groups:
       dependencies:
         patterns: ['*']
+        update-types: ['minor', 'patch']
   # Versiones de las acciones de GitHub usadas en la CI.
   - package-ecosystem: github-actions
     directory: /
+    target-branch: develop
     schedule:
       interval: weekly
