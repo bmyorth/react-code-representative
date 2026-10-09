@@ -1,0 +1,18 @@
+.search {
+  flex: 1;
+  max-width: 24rem;
+}
+
+.input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 1rem;
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}

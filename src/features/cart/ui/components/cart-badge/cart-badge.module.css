@@ -1,0 +1,30 @@
+.badge {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+
+.badge:hover {
+  background: var(--color-surface-muted);
+}
+
+.count {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.1rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
