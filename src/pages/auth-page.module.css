@@ -1,0 +1,10 @@
+.page {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+  padding-top: var(--space-6);
+}
+
+.alt {
+  color: var(--color-text-muted);
+}

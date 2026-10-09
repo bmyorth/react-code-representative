@@ -1,3 +1,6 @@
+import { Link } from 'react-router';
+
+import { buildPath } from '@/shared/config/routes';
 import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/format-currency';
 
@@ -29,6 +32,9 @@ export function CartSummary() {
           <dd>{formatCurrency(subtotal)}</dd>
         </div>
       </dl>
+      <Link to={buildPath.checkout()} className={styles.checkout}>
+        Ir a pagar
+      </Link>
     </aside>
   );
 }

@@ -108,6 +108,23 @@ export default tseslint.config(
     },
   },
 
+  // Backend local: corre en Node, no en el navegador, y los tests se documentan con describe/it.
+  {
+    files: ['server/**/*.ts', 'vitest.server.config.ts'],
+    languageOptions: { globals: globals.node },
+  },
+  {
+    // Los tests del backend leen JSON de respuestas sin tipar: las reglas `no-unsafe-*` solo añaden ruido.
+    files: ['server/**/*.test.ts', 'server/testing/**'],
+    rules: {
+      'jsdoc/require-jsdoc': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
+
   // Archivos de configuración en Node.
   {
     files: ['*.config.{js,ts}', '.storybook/main.ts'],

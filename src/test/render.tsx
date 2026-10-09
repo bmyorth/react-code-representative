@@ -7,6 +7,8 @@ import { MemoryRouter } from 'react-router';
 interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
   /** URL inicial del router en memoria (p. ej. `/?category=audio`). */
   readonly route?: string;
+  /** Prepara la caché antes del primer render (p. ej. sembrar la sesión) para no depender de la red. */
+  readonly seed?: (queryClient: QueryClient) => void;
 }
 
 /**
@@ -15,11 +17,13 @@ interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
  */
 export function renderWithProviders(
   ui: ReactElement,
-  { route = '/', ...options }: RenderWithProvidersOptions = {},
+  { route = '/', seed, ...options }: RenderWithProvidersOptions = {},
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity } },
   });
+
+  seed?.(queryClient);
 
   function Wrapper({ children }: { readonly children: ReactNode }) {
     return (
