@@ -48,7 +48,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:coverage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
         with:
           name: coverage
@@ -70,7 +70,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run build-storybook
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: storybook
           path: storybook-static/
