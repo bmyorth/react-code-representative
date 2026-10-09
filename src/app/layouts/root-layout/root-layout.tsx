@@ -1,5 +1,6 @@
 import { Link, Outlet, ScrollRestoration, useNavigation } from 'react-router';
 
+import { UserMenu } from '@/features/auth';
 import { CartBadge } from '@/features/cart';
 import { buildPath } from '@/shared/config/routes';
 
@@ -21,7 +22,8 @@ export function RootLayout() {
           <Link to={buildPath.catalog()} className={styles.brand}>
             Tienda<span className={styles.brandAccent}>.</span>
           </Link>
-          <nav aria-label="Principal">
+          <nav aria-label="Principal" className={styles.nav}>
+            <UserMenu />
             <CartBadge />
           </nav>
         </div>
@@ -30,7 +32,7 @@ export function RootLayout() {
         <Outlet />
       </main>
       <footer className={styles.footer}>
-        <p>Proyecto de demostración. Los datos provienen de una API simulada.</p>
+        <p>Proyecto de demostración. Los datos provienen de un backend local simulado.</p>
       </footer>
       <ScrollRestoration />
     </>

@@ -13,16 +13,21 @@ export function RouteErrorBoundary() {
   if (import.meta.env.DEV) console.error(error);
 
   const isNotFound = isRouteErrorResponse(error) && error.status === 404;
+  const isForbidden = isRouteErrorResponse(error) && error.status === 403;
 
   return (
     <main className="page">
       <StatusMessage
-        tone={isNotFound ? 'neutral' : 'error'}
-        title={isNotFound ? 'Página no encontrada' : 'Algo salió mal'}
+        tone={isNotFound || isForbidden ? 'neutral' : 'error'}
+        title={
+          isNotFound ? 'Página no encontrada' : isForbidden ? 'Acceso denegado' : 'Algo salió mal'
+        }
         description={
           isNotFound
             ? 'La página que buscas no existe.'
-            : 'Ha ocurrido un error inesperado. Vuelve a intentarlo en unos segundos.'
+            : isForbidden
+              ? 'Tu cuenta no tiene permiso para ver esta página.'
+              : 'Ha ocurrido un error inesperado. Vuelve a intentarlo en unos segundos.'
         }
         action={<Link to={buildPath.catalog()}>Volver al catálogo</Link>}
       />
