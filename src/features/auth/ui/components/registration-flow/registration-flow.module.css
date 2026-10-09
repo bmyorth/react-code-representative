@@ -1,0 +1,5 @@
+.flow {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+}

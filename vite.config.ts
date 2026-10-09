@@ -31,6 +31,11 @@ const contentSecurityPolicy = [
   "frame-ancestors 'none'",
 ].join('; ');
 
+/** Backend local (`npm run dev:api`). El navegador solo habla con el origen de Vite: las cookies son same-site. */
+const apiProxy = {
+  '/api': { target: 'http://127.0.0.1:3001', changeOrigin: false },
+} as const;
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -41,8 +46,10 @@ export default defineConfig({
   },
   server: {
     headers: securityHeaders,
+    proxy: apiProxy,
   },
   preview: {
+    proxy: apiProxy,
     headers: { ...securityHeaders, 'Content-Security-Policy': contentSecurityPolicy },
   },
   build: {
