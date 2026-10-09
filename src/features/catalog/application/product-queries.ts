@@ -33,4 +33,5 @@ export function createProductQueries(repository: ProductRepository) {
   } as const;
 }
 
+/** Conjunto de `queryOptions` del catálogo ya conectado a un repositorio. */
 export type ProductQueries = ReturnType<typeof createProductQueries>;

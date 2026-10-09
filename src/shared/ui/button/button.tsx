@@ -7,6 +7,7 @@ import styles from './button.module.css';
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
+/** Props del botón: las de `<button>` nativo más variante, tamaño y ancho completo. */
 export interface ButtonProps extends ComponentPropsWithRef<'button'> {
   readonly variant?: ButtonVariant;
   readonly size?: ButtonSize;

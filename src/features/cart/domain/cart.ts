@@ -14,6 +14,7 @@ export interface CartProduct {
   readonly stock: number;
 }
 
+/** Línea del carrito: instantánea del producto más la cantidad elegida. */
 export interface CartItem {
   readonly productId: string;
   readonly name: string;
@@ -23,6 +24,7 @@ export interface CartItem {
   readonly maxQuantity: number;
 }
 
+/** Carrito inmutable. Cada operación devuelve uno nuevo (o el mismo si no hay cambios). */
 export interface Cart {
   readonly items: readonly CartItem[];
 }
@@ -30,12 +32,14 @@ export interface Cart {
 /** Límite por línea para evitar pedidos abusivos aunque haya stock. */
 export const MAX_QUANTITY_PER_ITEM = 10;
 
+/** Carrito vacío compartido: al ser una única referencia, compararlo es barato. */
 export const emptyCart: Cart = { items: [] };
 
 function clampQuantity(quantity: number, maxQuantity: number): number {
   return Math.min(Math.max(Math.trunc(quantity), 0), maxQuantity);
 }
 
+/** Busca la línea de un producto. Devuelve `undefined` si no está en el carrito. */
 export function findItem(cart: Cart, productId: string): CartItem | undefined {
   return cart.items.find((item) => item.productId === productId);
 }
@@ -77,19 +81,23 @@ export function setItemQuantity(cart: Cart, productId: string, quantity: number)
   return replaceItem(cart, { ...existing, quantity: nextQuantity });
 }
 
+/** Elimina la línea de un producto. Si no existía, devuelve el mismo carrito. */
 export function removeItem(cart: Cart, productId: string): Cart {
   const items = cart.items.filter((item) => item.productId !== productId);
   return items.length === cart.items.length ? cart : { items };
 }
 
+/** Número total de unidades (no de líneas) del carrito. */
 export function getItemCount(cart: Cart): number {
   return cart.items.reduce((total, item) => total + item.quantity, 0);
 }
 
+/** Suma de todas las líneas, en céntimos. */
 export function getSubtotalInCents(cart: Cart): number {
   return cart.items.reduce((total, item) => total + item.priceInCents * item.quantity, 0);
 }
 
+/** Importe de una línea (precio unitario × cantidad), en céntimos. */
 export function getLineTotalInCents(item: CartItem): number {
   return item.priceInCents * item.quantity;
 }

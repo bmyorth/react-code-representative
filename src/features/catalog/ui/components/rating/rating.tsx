@@ -6,6 +6,7 @@ interface RatingProps {
 
 const MAX_RATING = 5;
 
+/** Valoración con una decimal. El texto completo ("Valoración: 4,5 de 5") solo lo leen los lectores de pantalla. */
 export function Rating({ value }: RatingProps) {
   const rounded = Math.round(value * 10) / 10;
   return (

@@ -35,6 +35,7 @@ function getStorage(): Storage | null {
   }
 }
 
+/** Adaptador de `CartPersistence` sobre `localStorage`, versionado y validado con Zod. */
 export const localStorageCartPersistence: CartPersistence = {
   load() {
     const raw = getStorage()?.getItem(STORAGE_KEY);

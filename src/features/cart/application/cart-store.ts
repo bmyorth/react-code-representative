@@ -11,6 +11,7 @@ import {
 
 import { type CartPersistence } from './cart-persistence';
 
+/** Operaciones que modifican el carrito. Delegan las reglas de negocio en el dominio. */
 export interface CartActions {
   readonly add: (product: CartProduct, quantity?: number) => void;
   readonly setQuantity: (productId: string, quantity: number) => void;
@@ -18,6 +19,7 @@ export interface CartActions {
   readonly clear: () => void;
 }
 
+/** Estado del store del carrito: los datos y sus acciones. */
 export interface CartState {
   readonly cart: Cart;
   /** Las acciones viven aparte y nunca cambian de referencia: suscribirse a ellas no provoca renders. */
@@ -64,4 +66,5 @@ export function createCartStore(persistence: CartPersistence) {
   return store;
 }
 
+/** Hook de Zustand devuelto por `createCartStore`. */
 export type CartStore = ReturnType<typeof createCartStore>;

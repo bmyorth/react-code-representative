@@ -15,6 +15,7 @@ export interface ProductRecord {
 
 const image = (seed: string) => `https://picsum.photos/seed/${seed}/600/600`;
 
+/** Productos de ejemplo que devuelve la API simulada. */
 export const products: readonly ProductRecord[] = [
   {
     id: 'auriculares-inalambricos',

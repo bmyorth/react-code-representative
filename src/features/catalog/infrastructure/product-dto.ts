@@ -20,12 +20,15 @@ export const productDtoSchema = z.object({
   rating: z.number().min(0).max(5),
 });
 
+/** Respuesta paginada de `/products`: los productos van dentro de `data`. */
 export const productListDtoSchema = z.object({
   data: z.array(productDtoSchema),
 });
 
+/** Producto con la forma exacta que devuelve la API. */
 export type ProductDto = z.infer<typeof productDtoSchema>;
 
+/** Traduce el DTO de la API a la entidad de dominio (patrón Mapper). */
 export function toProduct(dto: ProductDto): Product {
   return {
     id: dto.id as ProductId,

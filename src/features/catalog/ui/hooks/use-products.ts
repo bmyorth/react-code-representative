@@ -9,6 +9,7 @@ export function useProducts(filters: ProductFilters) {
   return useQuery({ ...productQueries.list(filters), placeholderData: keepPreviousData });
 }
 
+/** Detalle de un producto. Comparte caché con el loader de la ruta. */
 export function useProduct(id: ProductId) {
   return useQuery(productQueries.detail(id));
 }

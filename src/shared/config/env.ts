@@ -12,6 +12,7 @@ const envSchema = z.object({
 
 const parsed = envSchema.parse(import.meta.env);
 
+/** Configuración de entorno ya validada y con nombres de dominio. */
 export const env = {
   apiBaseUrl: parsed.VITE_API_BASE_URL,
   /** Si no se indica, la API simulada se activa solo en desarrollo. */

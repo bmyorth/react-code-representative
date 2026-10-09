@@ -11,6 +11,7 @@ import { buildPath } from '@/shared/config/routes';
 
 const renderAddToCart = (product: Product) => <AddToCartButton product={product} size="lg" />;
 
+/** Página `/products/:productId`: une la ficha del catálogo con el botón del carrito. */
 export function ProductDetailPage() {
   const productId = parseProductId(useParams().productId);
 
