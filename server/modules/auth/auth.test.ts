@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DEMO_PASSWORD } from '../../db';
 import { createTestApi, type TestApi } from '../../testing/api-client';
 
 const STRONG_PASSWORD = 'Contrasena-Segura-1';
@@ -141,6 +142,36 @@ describe('registro con código de 6 dígitos', () => {
     expect(api.ctx.db.outbox).toHaveLength(4);
   });
 
+  it('un desafío de una cuenta existente se comporta igual que uno real en reenvío y verificación', async () => {
+    const client = api.newClient();
+    const existing = await register(client, 'cliente@acme.test');
+    const fresh = await register(client, 'otro@acme.test');
+
+    // Reenviar demasiado pronto: misma respuesta para ambos.
+    const resendExisting = await client.post('/api/auth/resend', {
+      challengeId: existing.body.challengeId,
+    });
+    const resendFresh = await client.post('/api/auth/resend', {
+      challengeId: fresh.body.challengeId,
+    });
+    expect(resendExisting.status).toBe(resendFresh.status);
+    expect(resendExisting.body.error.code).toBe(resendFresh.body.error.code);
+
+    // Verificar con un código incorrecto: mismos intentos restantes y mismo código de error.
+    const wrongExisting = await client.post('/api/auth/verify', {
+      challengeId: existing.body.challengeId,
+      code: '000000',
+    });
+    const wrongFresh = await client.post('/api/auth/verify', {
+      challengeId: fresh.body.challengeId,
+      code: '000000',
+    });
+    expect(wrongExisting.body).toEqual(wrongFresh.body);
+
+    // El señuelo nunca se completa, ni siquiera con el código que se guardó.
+    expect(api.ctx.db.users.size).toBe(3);
+  });
+
   it('no revela si una cuenta ya existe (anti-enumeración)', async () => {
     const client = api.newClient();
     const existing = await register(client, 'cliente@acme.test');
@@ -190,6 +221,58 @@ describe('login y protección contra fuerza bruta', () => {
 
     api.clock.advance(api.ctx.config.lockoutSec * 1000 + 1);
     expect((await api.login(client, 'cliente@acme.test')).status).toBe(200);
+  });
+});
+
+describe('límites que no dependen de cabeceras del cliente', () => {
+  it('no se puede evadir el bloqueo de login falsificando X-Real-IP', async () => {
+    const client = api.newClient();
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await client.post(
+        '/api/auth/login',
+        { identifier: 'cliente@acme.test', password: 'Incorrecta-123' },
+        { headers: { 'X-Real-IP': `10.0.0.${String(attempt)}` } },
+      );
+    }
+
+    const locked = await client.post(
+      '/api/auth/login',
+      { identifier: 'cliente@acme.test', password: DEMO_PASSWORD },
+      { headers: { 'X-Real-IP': '10.9.9.9' } },
+    );
+    expect(locked.status).toBe(429);
+  });
+
+  it('con un proxy de confianza, un ataque distribuido desde muchas IPs también se bloquea por cuenta', async () => {
+    const proxied = await createTestApi({ trustProxy: true });
+    const client = proxied.newClient();
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      await client.post(
+        '/api/auth/login',
+        { identifier: 'cliente@acme.test', password: 'Incorrecta-123' },
+        { headers: { 'X-Real-IP': `10.0.1.${String(attempt)}` } },
+      );
+    }
+
+    const result = await client.post(
+      '/api/auth/login',
+      { identifier: 'cliente@acme.test', password: DEMO_PASSWORD },
+      { headers: { 'X-Real-IP': '10.7.7.7' } },
+    );
+    expect(result.body.error).toMatchObject({ code: 'account_locked' });
+  });
+
+  it('limita los registros que se pueden iniciar por destino y hora', async () => {
+    const client = api.newClient();
+    const statuses = [];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      statuses.push((await register(client, 'victima@acme.test')).status);
+      api.clock.advance(31_000);
+    }
+    expect(statuses).toEqual([202, 202, 202, 202, 202, 429]);
+
+    api.clock.advance(3_600_000);
+    expect((await register(client, 'victima@acme.test')).status).toBe(202);
   });
 });
 

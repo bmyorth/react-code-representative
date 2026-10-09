@@ -8,7 +8,12 @@ export interface AppContext {
   readonly db: Db;
   /** Reloj en milisegundos. Los tests lo adelantan para probar caducidades sin esperar. */
   readonly now: () => number;
+  /** Bloqueo por IP + cuenta. */
   readonly loginThrottle: ReturnType<typeof createLoginThrottle>;
+  /** Bloqueo por cuenta con independencia de la IP: frena la fuerza bruta distribuida. */
+  readonly accountThrottle: ReturnType<typeof createLoginThrottle>;
+  /** Tope de registros iniciados por destino y hora (limita los intentos de adivinar el código). */
+  readonly registrationLimiter: ReturnType<typeof createRateLimiter>;
   readonly authRateLimiter: ReturnType<typeof createRateLimiter>;
 }
 

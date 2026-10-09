@@ -40,14 +40,15 @@ pedidos y stock**.
 
 Variables de entorno (ver `.env.example`):
 
-| Variable                | Por defecto                                   | Para qué                                                                |
-| ----------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
-| `VITE_API_BASE_URL`     | `/api`                                        | URL base de la API que usa el navegador                                 |
-| `VITE_ENABLE_MOCKS`     | `false`                                       | `true` activa MSW en el navegador (solo catálogo; sin login ni pagos)   |
-| `API_PORT`              | `3001`                                        | Puerto de la API local                                                  |
-| `JWT_SECRET`            | aleatorio por arranque                        | Secreto de los access tokens. **Obligatorio en producción** (32+ chars) |
-| `ALLOWED_ORIGINS`       | `http://localhost:5173,http://localhost:4173` | Orígenes autorizados a hacer peticiones que modifican datos (CSRF)      |
-| `STRIPE_WEBHOOK_SECRET` | aleatorio por arranque                        | Secreto con el que el Stripe simulado firma sus webhooks                |
+| Variable                | Por defecto                                   | Para qué                                                                                  |
+| ----------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `VITE_API_BASE_URL`     | `/api`                                        | URL base de la API que usa el navegador                                                   |
+| `VITE_ENABLE_MOCKS`     | `false`                                       | `true` activa MSW en el navegador (solo catálogo; sin login ni pagos)                     |
+| `API_PORT`              | `3001`                                        | Puerto de la API local                                                                    |
+| `JWT_SECRET`            | aleatorio por arranque                        | Secreto de los access tokens. **Obligatorio en producción** (32+ chars)                   |
+| `ALLOWED_ORIGINS`       | `http://localhost:5173,http://localhost:4173` | Orígenes autorizados a hacer peticiones que modifican datos (CSRF)                        |
+| `STRIPE_WEBHOOK_SECRET` | aleatorio por arranque                        | Secreto con el que el Stripe simulado firma sus webhooks                                  |
+| `TRUST_PROXY`           | `false`                                       | `true` solo detrás de un proxy propio que fije `X-Real-IP`; si no, esa cabecera se ignora |
 
 > **¿Por qué un backend real y no solo MSW?** Un service worker no puede fijar cookies `HttpOnly`
 > (el navegador prohíbe `Set-Cookie` en sus respuestas). Para demostrar autenticación con tokens
@@ -187,25 +188,25 @@ la interfaz decide por `code`, nunca por el texto.
 
 ## Seguridad: qué se implementa y dónde
 
-| Amenaza / necesidad         | Medida                                                                                                                                        | Dónde                             |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| Robo de tokens por XSS      | Tokens **solo en cookies `HttpOnly`** + `SameSite=Strict` (+ `Secure` en producción). JavaScript nunca los ve                                 | `server/lib/http.ts`              |
-| Access token robado         | Vida corta (10 min), JWT HS256 con `iss`/`aud`, y comprobación de que la **sesión sigue activa** en cada petición (revocación inmediata)      | `lib/tokens.ts`, `middleware`     |
-| Refresh token robado        | **Rotación** en cada uso, guardado solo como hash y con **detección de reutilización** (si reaparece un token ya rotado, se revoca la sesión) | `modules/auth/service.ts`         |
-| CSRF                        | Comprobación de `Origin` + **double-submit** (`X-CSRF-Token` = cookie `csrf_token`) en toda petición que modifica datos                       | `middleware/security.ts`          |
-| Contraseñas                 | **scrypt** con sal única por usuario, comparación en tiempo constante; política de complejidad                                                | `lib/password.ts`                 |
-| Enumeración de usuarios     | Mismo mensaje y mismo tiempo (hash ficticio) para usuario inexistente y contraseña errónea; el registro de una cuenta existente no lo revela  | `modules/auth/routes.ts`          |
-| Fuerza bruta                | Bloqueo temporal tras 5 fallos por IP + cuenta, límite global por IP y límite específico en endpoints de auth, `Retry-After`                  | `lib/rate-limit.ts`               |
-| Códigos de verificación     | 6 dígitos aleatorios (`crypto.randomInt`), guardados como hash, TTL 10 min, 5 intentos, reenvíos limitados                                    | `modules/auth/routes.ts`          |
-| Sesiones                    | Una por dispositivo, máximo 5 simultáneas (se cierra la más antigua), listado y revocación individual o global                                | `modules/auth/routes.ts`          |
-| Aislamiento entre tenants   | El tenant sale **del token**; una cabecera distinta es `403`. Todas las consultas filtran por tenant                                          | `middleware/security.ts`          |
-| Autorización                | RBAC por middleware (`requireRole`). El rol nunca lo elige el cliente; los pedidos ajenos devuelven `404` (anti-IDOR)                         | `middleware`, `modules/orders`    |
-| Manipulación de precios     | El importe lo **calcula el servidor** con el catálogo del tenant; los precios del cliente se ignoran                                          | `modules/payments/routes.ts`      |
-| Doble cobro                 | `Idempotency-Key` obligatoria: reintentar devuelve el mismo pedido                                                                            | `modules/payments/routes.ts`      |
-| Datos de tarjeta            | El navegador tokeniza **contra la pasarela**; el backend nunca recibe ni guarda el número                                                     | `modules/payments/stripe-sim.ts`  |
-| Webhooks falsos o repetidos | Firma HMAC con marca de tiempo (anti-replay) y procesamiento idempotente por id de evento                                                     | `modules/payments/*`              |
-| Open redirect tras el login | `?from=` solo admite rutas internas                                                                                                           | `src/shared/lib/safe-redirect.ts` |
-| Otros                       | Cabeceras de seguridad, `Cache-Control: no-store`, límite de tamaño del cuerpo, validación de toda entrada con Zod                            | `app.ts`                          |
+| Amenaza / necesidad         | Medida                                                                                                                                                                                                   | Dónde                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Robo de tokens por XSS      | Tokens **solo en cookies `HttpOnly`** + `SameSite=Strict` (+ `Secure` en producción). JavaScript nunca los ve                                                                                            | `server/lib/http.ts`              |
+| Access token robado         | Vida corta (10 min), JWT HS256 con `iss`/`aud`, y comprobación de que la **sesión sigue activa** en cada petición (revocación inmediata)                                                                 | `lib/tokens.ts`, `middleware`     |
+| Refresh token robado        | **Rotación** en cada uso, guardado solo como hash y con **detección de reutilización** (si reaparece un token ya rotado, se revoca la sesión)                                                            | `modules/auth/service.ts`         |
+| CSRF                        | Comprobación de `Origin` + **double-submit** (`X-CSRF-Token` = cookie `csrf_token`) en toda petición que modifica datos                                                                                  | `middleware/security.ts`          |
+| Contraseñas                 | **scrypt** con sal única por usuario, comparación en tiempo constante; política de complejidad                                                                                                           | `lib/password.ts`                 |
+| Enumeración de usuarios     | Mismo mensaje y mismo tiempo (hash ficticio) para usuario inexistente y contraseña errónea; el registro de una cuenta existente devuelve un desafío señuelo idéntico (también en reenvío y verificación) | `modules/auth/routes.ts`          |
+| Fuerza bruta                | Bloqueo temporal tras 5 fallos por IP + cuenta, límite global por IP y límite específico en endpoints de auth, `Retry-After`                                                                             | `lib/rate-limit.ts`               |
+| Códigos de verificación     | 6 dígitos aleatorios (`crypto.randomInt`), guardados como hash, TTL 10 min, 5 intentos, reenvíos limitados y máximo 5 registros por destino y hora                                                       | `modules/auth/routes.ts`          |
+| Sesiones                    | Una por dispositivo, máximo 5 simultáneas (se cierra la más antigua), listado y revocación individual o global                                                                                           | `modules/auth/routes.ts`          |
+| Aislamiento entre tenants   | El tenant sale **del token**; una cabecera distinta es `403`. Todas las consultas filtran por tenant                                                                                                     | `middleware/security.ts`          |
+| Autorización                | RBAC por middleware (`requireRole`). El rol nunca lo elige el cliente; los pedidos ajenos devuelven `404` (anti-IDOR)                                                                                    | `middleware`, `modules/orders`    |
+| Manipulación de precios     | El importe lo **calcula el servidor** con el catálogo del tenant; los precios del cliente se ignoran                                                                                                     | `modules/payments/routes.ts`      |
+| Doble cobro                 | `Idempotency-Key` obligatoria: reintentar devuelve el mismo pedido                                                                                                                                       | `modules/payments/routes.ts`      |
+| Datos de tarjeta            | El navegador tokeniza **contra la pasarela**; el backend nunca recibe ni guarda el número                                                                                                                | `modules/payments/stripe-sim.ts`  |
+| Webhooks falsos o repetidos | Firma HMAC con marca de tiempo (anti-replay) y procesamiento idempotente por id de evento                                                                                                                | `modules/payments/*`              |
+| Open redirect tras el login | `?from=` solo admite rutas internas                                                                                                                                                                      | `src/shared/lib/safe-redirect.ts` |
+| Otros                       | Cabeceras de seguridad, `Cache-Control: no-store`, límite de tamaño del cuerpo, validación de toda entrada con Zod                                                                                       | `app.ts`                          |
 
 > Es un backend de demostración: usa almacenamiento en memoria, un único proceso y no sustituye
 > a un servicio de autenticación real. Los límites de peticiones tampoco leen `X-Forwarded-For`

@@ -1,4 +1,5 @@
-import { Hono } from 'hono';
+import { getConnInfo } from '@hono/node-server/conninfo';
+import { type Context, Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 
 import { loadConfig, type ServerConfig } from './config';
@@ -12,6 +13,15 @@ import { catalogRoutes } from './modules/catalog/routes';
 import { adminRoutes, orderRoutes } from './modules/orders/routes';
 import { paymentRoutes, webhookRoutes } from './modules/payments/routes';
 import { stripeSimRoutes } from './modules/payments/stripe-sim';
+
+/** IP de la conexión TCP. Fuera de un servidor real (tests con `app.request`) no hay socket. */
+function remoteAddress(c: Context<AppEnv>): string {
+  try {
+    return getConnInfo(c).remote.address ?? 'desconocida';
+  } catch {
+    return '127.0.0.1';
+  }
+}
 
 /** Opciones de `createApp`. Los tests inyectan reloj, configuración y base de datos. */
 export interface CreateAppOptions {
@@ -39,14 +49,28 @@ export async function createApp(options: CreateAppOptions = {}): Promise<ApiApp>
       lockoutMs: config.lockoutSec * 1000,
       now,
     }),
+    // El bloqueo por cuenta (sin IP) admite más fallos para que un tercero no pueda dejar a un usuario
+    // legítimo fuera con unos pocos intentos desde una sola IP.
+    accountThrottle: createLoginThrottle({
+      maxAttempts: config.loginMaxAttempts * 2,
+      lockoutMs: config.lockoutSec * 1000,
+      now,
+    }),
+    registrationLimiter: createRateLimiter({
+      limit: config.registrationsPerHour,
+      windowMs: 3_600_000,
+      now,
+    }),
     authRateLimiter: createRateLimiter({ limit: 30, windowMs: 60_000, now }),
   };
 
   const app = new Hono<AppEnv>();
 
   app.use('*', async (c, next) => {
-    // Sin proxy de confianza no se lee `X-Forwarded-For`: sería un valor que el cliente controla.
-    c.set('ip', c.req.header('X-Real-IP') ?? '127.0.0.1');
+    // Sin proxy de confianza la IP es la de la conexión: cualquier cabecera la controla el cliente.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- el contexto de Hono lleva un genérico `any`
+    const socketAddress = remoteAddress(c);
+    c.set('ip', config.trustProxy ? (c.req.header('X-Real-IP') ?? socketAddress) : socketAddress);
     await next();
   });
   app.use('*', securityHeaders(), noStore(), latency(ctx), rateLimit(ctx));

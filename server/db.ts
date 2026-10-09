@@ -40,6 +40,11 @@ export interface PendingRegistration {
   readonly identifier: string;
   readonly identifierType: IdentifierType;
   readonly passwordHash: string;
+  /**
+   * `true` si la cuenta ya existía: el desafío es un señuelo indistinguible de uno real, pero nunca
+   * puede completarse. Así registrar un destino ya usado no revela que existe.
+   */
+  readonly decoy: boolean;
   codeHash: string;
   expiresAt: number;
   attempts: number;

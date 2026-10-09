@@ -104,22 +104,20 @@ export function authRoutes(ctx: AppContext): Hono<AppEnv> {
       throw errors.validation({ identifier: 'Introduce un email o un teléfono (+34…).' });
 
     const tenant = c.get('tenant');
+
+    // Tope por destino (exista o no la cuenta): sin él se podrían encadenar desafíos nuevos, de 5
+    // intentos cada uno, hasta adivinar el código de 6 dígitos de un destino ajeno.
+    const { allowed, retryAfterSec } = ctx.registrationLimiter.hit(
+      `${tenant.id}|${parsed.identifier}`,
+    );
+    if (!allowed) {
+      c.header('Retry-After', String(retryAfterSec));
+      throw errors.tooMany(retryAfterSec);
+    }
+
     const passwordHash = await hashPassword(input.password);
     const now = ctx.now();
-
-    if (findUser(ctx, tenant.id, parsed.identifier)) {
-      // No se revela que la cuenta existe: se avisa al dueño y se devuelve un desafío falso.
-      sendCode(
-        ctx,
-        parsed.identifier,
-        parsed.type,
-        'Alguien intentó registrarse con tu cuenta. Si fuiste tú, inicia sesión.',
-      );
-      return c.json(
-        challengeResponse(ctx, newId('chl'), maskIdentifier(parsed.identifier, parsed.type), now),
-        202,
-      );
-    }
+    const accountExists = findUser(ctx, tenant.id, parsed.identifier) !== undefined;
 
     // Un registro pendiente anterior para el mismo destino se sustituye por el nuevo.
     for (const [id, pending] of ctx.db.pendingRegistrations) {
@@ -136,6 +134,7 @@ export function authRoutes(ctx: AppContext): Hono<AppEnv> {
       identifier: parsed.identifier,
       identifierType: parsed.type,
       passwordHash,
+      decoy: accountExists,
       codeHash: sha256(code),
       expiresAt: now + ctx.config.codeTtlSec * 1000,
       attempts: 0,
@@ -143,7 +142,16 @@ export function authRoutes(ctx: AppContext): Hono<AppEnv> {
       lastSentAt: now,
     };
     ctx.db.pendingRegistrations.set(pending.id, pending);
-    sendCode(ctx, parsed.identifier, parsed.type, codeMessage(code, ctx));
+    // Mismo camino para cuentas nuevas y existentes: al dueño de una cuenta existente se le avisa
+    // en lugar de enviarle un código, y el solicitante recibe un desafío idéntico (señuelo).
+    sendCode(
+      ctx,
+      parsed.identifier,
+      parsed.type,
+      accountExists
+        ? 'Alguien intentó registrarse con tu cuenta. Si fuiste tú, inicia sesión.'
+        : codeMessage(code, ctx),
+    );
 
     return c.json(
       challengeResponse(ctx, pending.id, maskIdentifier(parsed.identifier, parsed.type), now),
@@ -175,7 +183,10 @@ export function authRoutes(ctx: AppContext): Hono<AppEnv> {
     pending.resends += 1;
     pending.lastSentAt = now;
     pending.expiresAt = now + ctx.config.codeTtlSec * 1000;
-    sendCode(ctx, pending.identifier, pending.identifierType, codeMessage(code, ctx));
+    // Un señuelo se comporta igual (cooldown, límites, respuesta) pero no envía ningún código.
+    if (!pending.decoy) {
+      sendCode(ctx, pending.identifier, pending.identifierType, codeMessage(code, ctx));
+    }
 
     return c.json(
       challengeResponse(
@@ -195,7 +206,7 @@ export function authRoutes(ctx: AppContext): Hono<AppEnv> {
       throw new HttpError(400, 'invalid_code', 'El código no es válido o ha caducado.');
     }
 
-    if (!safeEqual(sha256(code), pending.codeHash)) {
+    if (pending.decoy || !safeEqual(sha256(code), pending.codeHash)) {
       pending.attempts += 1;
       if (pending.attempts >= ctx.config.codeMaxAttempts) {
         ctx.db.pendingRegistrations.delete(pending.id);
@@ -232,9 +243,15 @@ export function authRoutes(ctx: AppContext): Hono<AppEnv> {
     const input = await parseJson(c, loginSchema);
     const parsed = parseIdentifier(input.identifier);
     const tenant = c.get('tenant');
-    const throttleKey = `${c.get('ip')}|${tenant.id}|${parsed?.identifier ?? input.identifier.toLowerCase()}`;
+    const account = `${tenant.id}|${parsed?.identifier ?? input.identifier.toLowerCase()}`;
+    const throttleKey = `${c.get('ip')}|${account}`;
 
-    const lockedFor = ctx.loginThrottle.lockedForSec(throttleKey);
+    // Dos bloqueos: por IP + cuenta (frena a un atacante concreto) y por cuenta sola con un umbral
+    // mayor (frena un ataque distribuido desde muchas IPs).
+    const lockedFor = Math.max(
+      ctx.loginThrottle.lockedForSec(throttleKey),
+      ctx.accountThrottle.lockedForSec(account),
+    );
     if (lockedFor > 0) {
       c.header('Retry-After', String(lockedFor));
       throw new HttpError(
@@ -252,10 +269,12 @@ export function authRoutes(ctx: AppContext): Hono<AppEnv> {
     const valid = await verifyPassword(input.password, user?.passwordHash ?? (await dummyHash));
     if (!user || !valid) {
       ctx.loginThrottle.registerFailure(throttleKey);
+      ctx.accountThrottle.registerFailure(account);
       throw new HttpError(401, 'invalid_credentials', 'Credenciales incorrectas.');
     }
 
     ctx.loginThrottle.reset(throttleKey);
+    ctx.accountThrottle.reset(account);
     const tokens = await createSession(ctx, user, meta(c));
     setSessionCookies(c, ctx, tokens);
     return c.json({ user: toPublicUser(user, tenant) });

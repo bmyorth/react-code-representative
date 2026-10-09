@@ -22,6 +22,13 @@ export interface ServerConfig {
   readonly resendMax: number;
   readonly loginMaxAttempts: number;
   readonly lockoutSec: number;
+  /**
+   * Confiar en `X-Real-IP` para conocer la IP del cliente. Solo debe activarse detrás de un proxy
+   * propio que sobrescriba esa cabecera: si no, cualquiera la falsifica y evade los límites.
+   */
+  readonly trustProxy: boolean;
+  /** Registros que se pueden iniciar por hora para un mismo destino (email o teléfono). */
+  readonly registrationsPerHour: number;
   /** Peticiones por minuto y por IP (0 = sin límite). */
   readonly rateLimitPerMinute: number;
   /** Retardo del webhook simulado. Con 0 se entrega de forma síncrona (tests). */
@@ -62,6 +69,8 @@ export function loadConfig(
     resendMax: 3,
     loginMaxAttempts: 5,
     lockoutSec: 15 * 60,
+    trustProxy: env.TRUST_PROXY === 'true',
+    registrationsPerHour: 5,
     rateLimitPerMinute: 300,
     webhookDelayMs: 600,
     latencyMs: isProduction ? 0 : 250,
