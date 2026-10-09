@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Dependencias de npm agrupadas en un único PR semanal.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dependencies:
+        patterns: ['*']
+  # Versiones de las acciones de GitHub usadas en la CI.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

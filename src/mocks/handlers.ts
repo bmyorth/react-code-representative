@@ -15,6 +15,7 @@ const normalize = (text: string) =>
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase();
 
+/** Handlers de la API simulada. Se comparten entre el navegador (`msw/browser`) y los tests (`msw/node`). */
 export const handlers = [
   http.get(api('/products'), async ({ request }) => {
     await delay(NETWORK_DELAY_MS);

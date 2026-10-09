@@ -1,5 +1,6 @@
 import { CartView } from '@/features/cart';
 
+/** Página `/cart`: compone la vista del carrito. */
 export function CartPage() {
   return (
     <>

@@ -7,19 +7,24 @@ con [MSW](https://mswjs.io/), así que funciona sin backend.
 ## Puesta en marcha
 
 ```bash
-nvm use          # Node 22 (ver .nvmrc)
+nvm use          # Node 22.22.2+ (ver .nvmrc)
 npm install
 npm run dev      # http://localhost:5173
 ```
 
-| Script                 | Qué hace                                                |
-| ---------------------- | ------------------------------------------------------- |
-| `npm run dev`          | Servidor de desarrollo con la API simulada              |
-| `npm run build`        | Comprobación de tipos + build de producción             |
-| `npm run preview`      | Sirve `dist/` con cabeceras de seguridad y CSP estricta |
-| `npm run typecheck`    | Solo comprobación de tipos                              |
-| `npm run lint`         | ESLint (sin warnings permitidos)                        |
-| `npm run format:check` | Prettier en modo verificación                           |
+| Script                    | Qué hace                                                |
+| ------------------------- | ------------------------------------------------------- |
+| `npm run dev`             | Servidor de desarrollo con la API simulada              |
+| `npm run build`           | Comprobación de tipos + build de producción             |
+| `npm run preview`         | Sirve `dist/` con cabeceras de seguridad y CSP estricta |
+| `npm run typecheck`       | Solo comprobación de tipos                              |
+| `npm run lint`            | ESLint (sin warnings permitidos)                        |
+| `npm run format:check`    | Prettier en modo verificación                           |
+| `npm test`                | Vitest en modo watch                                    |
+| `npm run test:coverage`   | Tests una vez, con informe de cobertura en `coverage/`  |
+| `npm run storybook`       | Storybook en http://localhost:6006                      |
+| `npm run build-storybook` | Storybook estático en `storybook-static/`               |
+| `npm run validate`        | Formato + lint + tipos + tests (lo mismo que la CI)     |
 
 Variables de entorno (ver `.env.example`):
 
@@ -40,6 +45,10 @@ Variables de entorno (ver `.env.example`):
 | API simulada        | MSW                                                                 | Intercepta `fetch` en la red: el código no sabe que es simulada    |
 | Estilos             | CSS Modules + design tokens                                         | Sin runtime y sin colisiones de clases                             |
 | Calidad             | ESLint (typescript-eslint strict, react-hooks, jsx-a11y) + Prettier | Reglas de tipos, hooks y accesibilidad                             |
+| Tests               | Vitest + Testing Library + MSW                                      | Mismo pipeline que Vite; se prueba como usa la app el usuario      |
+| Catálogo de UI      | Storybook 10 (docs + a11y)                                          | Componentes aislados, documentados y con pruebas de interacción    |
+| Documentación       | JSDoc (obligatorio vía `eslint-plugin-jsdoc`)                       | Toda API pública explica su porqué                                 |
+| CI                  | GitHub Actions                                                      | Cada PR pasa formato, lint, tipos, auditoría, tests y builds       |
 
 ## Arquitectura
 
@@ -59,8 +68,13 @@ src/
 │   │   └── index.ts         # API pública de la feature
 │   └── cart/                # Misma estructura
 ├── shared/              # Código genérico sin lógica de negocio (ui, api, config, lib, hooks)
-└── mocks/               # API simulada (MSW)
+├── mocks/               # API simulada (MSW), compartida por navegador, tests y Storybook
+└── test/                # Configuración de Vitest, servidor MSW y utilidades de render
 ```
+
+Los tests (`*.test.ts[x]`) y las historias (`*.stories.tsx`) viven **junto al archivo que
+prueban o documentan**. Así, al mover o borrar un componente, sus tests e historias van con él,
+y se respeta la regla de que nadie importa el interior de una feature desde fuera.
 
 ### Reglas de dependencia
 
@@ -114,3 +128,64 @@ src/
 Enlace "Saltar al contenido", foco visible, etiquetas accesibles en los controles, `aria-live` en
 resultados y cantidades, `aria-pressed` en los filtros, soporte de `prefers-reduced-motion` y modo
 oscuro.
+
+## Tests
+
+[Vitest](https://vitest.dev/) reutiliza la configuración de Vite (alias, plugins) y
+[Testing Library](https://testing-library.com/) prueba los componentes como los usa una persona:
+por rol y texto accesible, nunca por clases CSS ni detalles internos.
+
+```bash
+npm test                 # modo watch
+npm run test:coverage    # una pasada + cobertura (coverage/index.html)
+```
+
+Qué se prueba en cada capa:
+
+| Capa            | Ejemplo                                          | Qué demuestra                                                          |
+| --------------- | ------------------------------------------------ | ---------------------------------------------------------------------- |
+| Dominio         | `cart.test.ts`, `product-filters.test.ts`        | Reglas de negocio puras, sin mocks. **Cobertura exigida: 100 %**       |
+| Aplicación      | `cart-store.test.ts`                             | El store solo orquesta; la persistencia es un puerto que se falsea     |
+| Infraestructura | `http-product-repository.test.ts`                | Contrato de la API, errores normalizados y cancelación                 |
+| Seguridad       | `local-storage-cart-persistence.test.ts`         | Datos manipulados en `localStorage` se descartan sin romper la app     |
+| Rendimiento     | `use-cart.test.ts`                               | Cambiar una línea del carrito **no re-renderiza** las demás            |
+| Sin fugas       | `use-debounced-value.test.ts`                    | Los temporizadores se limpian al desmontar                             |
+| Integración UI  | `product-catalog.test.tsx`, `cart-view.test.tsx` | Flujos completos con la API simulada: carga, filtros, error, reintento |
+| Historias       | `src/test/stories.test.tsx`                      | Cada historia de Storybook se renderiza y ejecuta su `play`            |
+
+La API simulada es la misma en el navegador y en los tests (`msw/node`). Cualquier petición
+sin handler hace fallar el test, de modo que ningún test depende de la red real.
+
+## Storybook
+
+```bash
+npm run storybook        # http://localhost:6006
+```
+
+- Cada componente de UI tiene su historia junto a él (`*.stories.tsx`), con documentación
+  generada automáticamente (`autodocs`) a partir de los tipos y del JSDoc.
+- El addon de accesibilidad (axe) revisa cada historia.
+- Las historias interactivas (`QuantityStepper`, `CategoryFilter`, `SearchBox`, `AddToCartButton`)
+  incluyen una función `play` que se ejecuta también en Vitest: si una historia se rompe, la CI
+  lo detecta.
+- Los datos de ejemplo se generan desde la API simulada con el mismo mapper que usa la app
+  (`product-fixtures.ts`): no hay datos duplicados que mantener.
+
+## Documentación del código
+
+Toda función, componente, tipo o constante **exportada** lleva un comentario JSDoc que explica
+su propósito y, sobre todo, el porqué de las decisiones (por ejemplo, por qué un selector evita
+renders). ESLint (`eslint-plugin-jsdoc`) lo exige y valida su sintaxis. Los tipos no se repiten
+en el JSDoc: ya los aporta TypeScript.
+
+## Integración continua
+
+`.github/workflows/ci.yml` se ejecuta en cada PR y en cada push a `main`, con tres trabajos en
+paralelo:
+
+1. **Calidad**: Prettier, ESLint, TypeScript y `npm audit` de las dependencias de producción.
+2. **Tests**: Vitest con cobertura (el informe se publica como artefacto).
+3. **Build**: build de producción de la app y de Storybook (publicado como artefacto).
+
+La CI usa permisos de solo lectura, cancela ejecuciones obsoletas y toma la versión de Node de
+`.nvmrc`. Dependabot propone cada semana las actualizaciones de npm y de las acciones.

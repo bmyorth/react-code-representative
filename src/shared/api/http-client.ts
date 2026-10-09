@@ -39,7 +39,8 @@ async function get<TSchema extends z.ZodType>(
       ...(signal ? { signal } : {}),
     });
   } catch (cause) {
-    if (cause instanceof DOMException && cause.name === 'AbortError') throw cause;
+    // Una cancelación no es un fallo de la API: se propaga tal cual para que TanStack Query la ignore.
+    if (signal?.aborted) throw cause;
     throw new ApiError('No se pudo conectar con el servidor.', 0, { cause });
   }
 
@@ -56,4 +57,5 @@ async function get<TSchema extends z.ZodType>(
   return result.data;
 }
 
+/** Cliente HTTP de la aplicación. Toda petición a la API pasa por aquí. */
 export const httpClient = { get } as const;

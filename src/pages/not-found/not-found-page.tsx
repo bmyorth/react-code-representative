@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { buildPath } from '@/shared/config/routes';
 import { StatusMessage } from '@/shared/ui';
 
+/** Página 404 para cualquier ruta desconocida. */
 export function NotFoundPage() {
   return (
     <>

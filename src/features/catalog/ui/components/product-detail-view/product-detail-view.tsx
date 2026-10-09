@@ -22,6 +22,7 @@ interface ProductDetailViewProps {
 
 const LOW_STOCK_THRESHOLD = 5;
 
+/** Ficha de producto con sus estados de carga, error y "no encontrado". */
 export function ProductDetailView({ productId, renderAction }: ProductDetailViewProps) {
   const { data: product, isPending, isError, error, refetch } = useProduct(productId);
 
@@ -75,6 +76,7 @@ export function ProductDetailView({ productId, renderAction }: ProductDetailView
   );
 }
 
+/** Estado vacío para un producto inexistente o un id inválido. */
 export function ProductNotFound() {
   return (
     <StatusMessage

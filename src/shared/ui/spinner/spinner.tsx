@@ -5,6 +5,7 @@ interface SpinnerProps {
   readonly label?: string;
 }
 
+/** Indicador de carga accesible (`role="status"`). */
 export function Spinner({ label = 'Cargando…' }: SpinnerProps) {
   return (
     <div className={styles.wrapper} role="status">

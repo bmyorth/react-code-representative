@@ -14,6 +14,7 @@ interface ProductGridProps {
   readonly ProductAction?: ComponentType<{ readonly product: Product }>;
 }
 
+/** Rejilla de tarjetas. Las primeras imágenes se cargan con prioridad para mejorar el LCP. */
 export function ProductGrid({ products, ProductAction }: ProductGridProps) {
   return (
     <ul className={styles.grid}>

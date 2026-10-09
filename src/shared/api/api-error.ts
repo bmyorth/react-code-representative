@@ -13,6 +13,7 @@ export class ApiError extends Error {
   }
 }
 
+/** Type guard para distinguir errores de la API de cualquier otro error. */
 export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
 }

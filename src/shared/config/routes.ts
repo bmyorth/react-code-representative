@@ -8,6 +8,7 @@ export const routePaths = {
   cart: '/cart',
 } as const;
 
+/** Construye URLs concretas a partir de las rutas, codificando los parámetros. */
 export const buildPath = {
   catalog: () => routePaths.catalog,
   productDetail: (productId: string) => `/products/${encodeURIComponent(productId)}`,

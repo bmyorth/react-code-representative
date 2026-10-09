@@ -17,6 +17,7 @@ const OPTIONS: readonly { value: ProductCategory | undefined; label: string }[] 
   ...PRODUCT_CATEGORIES.map((category) => ({ value: category, label: CATEGORY_LABELS[category] })),
 ];
 
+/** Filtro de categorías como botones conmutables (`aria-pressed`). Es controlado y está memorizado. */
 export const CategoryFilter = memo(function CategoryFilter({
   value,
   onChange,
