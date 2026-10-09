@@ -22,7 +22,7 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self'",
-  "img-src 'self' data: https://picsum.photos https://fastly.picsum.photos",
+  "img-src 'self' data: https://thumb.wikimedia.org https://upload.wikimedia.org",
   "connect-src 'self'",
   "worker-src 'self'",
   "object-src 'none'",
