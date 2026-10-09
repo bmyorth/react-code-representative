@@ -1,0 +1,20 @@
+.catalog {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.results {
+  transition: opacity var(--duration-fast);
+}
+
+.results[data-stale='true'] {
+  opacity: 0.6;
+}

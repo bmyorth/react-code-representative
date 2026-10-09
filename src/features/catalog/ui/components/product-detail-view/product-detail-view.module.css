@@ -1,0 +1,53 @@
+.detail {
+  display: grid;
+  gap: var(--space-8);
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  align-items: start;
+}
+
+.media {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.info {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.category {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.name {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+}
+
+.price {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.description {
+  color: var(--color-text-muted);
+  max-width: 60ch;
+}
+
+.stock {
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.stock[data-available='false'] {
+  color: var(--color-danger);
+}
+
+.action {
+  margin-top: var(--space-4);
+}
